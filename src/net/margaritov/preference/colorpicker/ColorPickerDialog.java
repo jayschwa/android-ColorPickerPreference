@@ -42,21 +42,21 @@ public class ColorPickerDialog
 		public void onColorChanged(int color);
 	}
 	
-	public ColorPickerDialog(Context context, int initialColor) {
+	public ColorPickerDialog(Context context, int initialColor, CharSequence title) {
 		super(context);
 
-		init(initialColor);
+		init(initialColor, title);
 	}
 
-	private void init(int color) {
+	private void init(int color, CharSequence title) {
 		// To fight color banding.
 		getWindow().setFormat(PixelFormat.RGBA_8888);
 
-		setUp(color);
+		setUp(color, title);
 
 	}
 
-	private void setUp(int color) {
+	private void setUp(int color, CharSequence title) {
 		
 		LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 		
@@ -64,7 +64,7 @@ public class ColorPickerDialog
 
 		setContentView(layout);
 
-		setTitle(R.string.dialog_color_picker);
+		setTitle(title);
 		
 		mColorPicker = (ColorPickerView) layout.findViewById(R.id.color_picker_view);
 		mOldColor = (ColorPickerPanelView) layout.findViewById(R.id.old_color_panel);
