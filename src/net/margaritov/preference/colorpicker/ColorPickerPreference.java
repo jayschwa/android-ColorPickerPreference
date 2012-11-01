@@ -43,7 +43,7 @@ public class ColorPickerPreference
 
 	View mView;
 	ColorPickerDialog mDialog;
-	private int mValue = Color.BLACK;
+	private int mColor = Color.BLACK;
 	private float mDensity = 0;
 	private boolean mAlphaSliderEnabled = false;
 
@@ -69,7 +69,7 @@ public class ColorPickerPreference
 
 	@Override
 	protected void onSetInitialValue(boolean restoreValue, Object defaultValue) {
-		onColorChanged(restoreValue ? getPersistedInt(mValue) : (Integer) defaultValue);
+		onColorChanged(restoreValue ? getPersistedInt(mColor) : (Integer) defaultValue);
 	}
 
 	private void init(Context context, AttributeSet attrs) {
@@ -112,7 +112,7 @@ public class ColorPickerPreference
 
 	private Bitmap getPreviewBitmap() {
 		int d = (int) (mDensity * 31); //30dip
-		int color = mValue;
+		int color = mColor;
 		Bitmap bm = Bitmap.createBitmap(d, d, Config.ARGB_8888);
 		int w = bm.getWidth();
 		int h = bm.getHeight();
@@ -135,7 +135,7 @@ public class ColorPickerPreference
 		if (isPersistent()) {
 			persistInt(color);
 		}
-		mValue = color;
+		mColor = color;
 		setPreviewColor();
 		try {
 			getOnPreferenceChangeListener().onPreferenceChange(this, color);
@@ -150,7 +150,7 @@ public class ColorPickerPreference
 	}
 	
 	protected void showDialog(Bundle state) {
-		mDialog = new ColorPickerDialog(getContext(), mValue);
+		mDialog = new ColorPickerDialog(getContext(), mColor);
 		mDialog.setOnColorChangedListener(this);
 		if (mAlphaSliderEnabled) {
 			mDialog.setAlphaSliderVisible(true);
