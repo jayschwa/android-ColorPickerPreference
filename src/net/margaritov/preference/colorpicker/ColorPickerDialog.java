@@ -16,8 +16,9 @@
 
 package net.margaritov.preference.colorpicker;
 
-import android.app.Dialog;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -26,9 +27,10 @@ import android.widget.LinearLayout;
 
 public class ColorPickerDialog
 	extends
-		Dialog
+		AlertDialog
 	implements
 		ColorPickerView.OnColorChangedListener,
+		DialogInterface.OnClickListener,
 		View.OnClickListener {
 
 	private ColorPickerView mColorPicker;
@@ -44,21 +46,21 @@ public class ColorPickerDialog
 
 	public ColorPickerDialog(Context context, int color, CharSequence title) {
 		super(context);
-		init(color, title);
-	}
 
-	private void init(int color, CharSequence title) {
 		// To fight color banding.
 		getWindow().setFormat(PixelFormat.RGBA_8888);
 
+		setTitle(title);
+
+		setButton(DialogInterface.BUTTON_POSITIVE,
+				context.getText(android.R.string.ok), this);
+		setButton(DialogInterface.BUTTON_NEGATIVE,
+				context.getText(android.R.string.cancel), this);
+
 		LayoutInflater inflater = (LayoutInflater) getContext()
 				.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-
 		View layout = inflater.inflate(R.layout.dialog_color_picker, null);
-
-		setContentView(layout);
-
-		setTitle(title);
+		setView(layout);
 
 		mColorPicker = (ColorPickerView) layout
 				.findViewById(R.id.color_picker_view);
@@ -76,20 +78,11 @@ public class ColorPickerDialog
 		mColorPicker.setOnColorChangedListener(this);
 		mOldColor.setColor(color);
 		mColorPicker.setColor(color, true);
-
 	}
 
 	@Override
 	public void onColorChanged(int color) {
-
 		mNewColor.setColor(color);
-
-		/*
-		if (mListener != null) {
-			mListener.onColorChanged(color);
-		}
-		*/
-
 	}
 
 	public void setAlphaSliderVisible(boolean visible) {
@@ -111,13 +104,29 @@ public class ColorPickerDialog
 	}
 
 	@Override
-	public void onClick(View v) {
-		if (v.getId() == R.id.new_color_panel) {
-			if (mListener != null) {
-				mListener.onColorChanged(mNewColor.getColor());
-			}
+	/**
+	 * Called when the "OK" or "Cancel" button is clicked.
+	 */
+	public void onClick(DialogInterface dialog, int which) {
+		if (which == DialogInterface.BUTTON_POSITIVE && mListener != null) {
+			mListener.onColorChanged(mNewColor.getColor());
 		}
 		dismiss();
+	}
+
+	@Override
+	/**
+	 * Called when a color panel is clicked.
+	 * 
+	 * Clicking the new color panel is equivalent to clicking "OK".
+	 * Clicking the old color panel is equivalent to clicking "Cancel".
+	 */
+	public void onClick(View v) {
+		if (v.getId() == R.id.new_color_panel) {
+			onClick(null, DialogInterface.BUTTON_POSITIVE);
+		} else if (v.getId() == R.id.old_color_panel) {
+			onClick(null, DialogInterface.BUTTON_NEGATIVE);
+		}
 	}
 
 	@Override

@@ -35,18 +35,6 @@
 		android:layout_height="wrap_content"
 		android:orientation="vertical"
 		android:layout_marginBottom="10dp">
-		
-		<TextView
-			android:layout_width="wrap_content" 
-			android:layout_height="wrap_content"	
-			android:text="@string/press_color_to_apply"
-			android:gravity="center"
-			android:layout_marginTop="6dp"
-			android:layout_marginLeft="6dp"
-			android:layout_marginRight="6dp"
-			android:layout_marginBottom="5dp"
-			android:textAppearance="?android:attr/textAppearanceSmall"
-		/>
 
 		<net.margaritov.preference.colorpicker.ColorPickerPanelView
 			android:id="@+id/old_color_panel"
