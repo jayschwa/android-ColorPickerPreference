@@ -140,11 +140,7 @@ public class ColorPickerPreference
 		}
 		mColor = color;
 		setPreviewColor();
-		try {
-			getOnPreferenceChangeListener().onPreferenceChange(this, color);
-		} catch (NullPointerException e) {
-
-		}
+		notifyChanged();
 	}
 
 	public boolean onPreferenceClick(Preference preference) {
