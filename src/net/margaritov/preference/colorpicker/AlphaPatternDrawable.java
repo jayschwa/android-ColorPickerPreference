@@ -25,14 +25,14 @@ import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 
 /**
- * This drawable that draws a simple white and gray chessboard pattern.
- * It's pattern you will often see as a background behind a
- * partly transparent image in many applications.
+ * This Drawable draws a simple white and gray chessboard pattern. It's pattern you will often see
+ * as a background behind a partly transparent image in many applications.
+ * 
  * @author Daniel Nilsson
  */
 public class AlphaPatternDrawable extends Drawable {
 
-	private int mRectangleSize = 10;
+	private int mRectangleSize;
 
 	private Paint mPaint = new Paint();
 	private Paint mPaintWhite = new Paint();
@@ -42,9 +42,9 @@ public class AlphaPatternDrawable extends Drawable {
 	private int numRectanglesVertical;
 
 	/**
-	 * Bitmap in which the pattern will be cahched.
+	 * Bitmap in which the pattern will be cached.
 	 */
-	private Bitmap		mBitmap;
+	private Bitmap mBitmap;
 
 	public AlphaPatternDrawable(int rectangleSize) {
 		mRectangleSize = rectangleSize;
@@ -87,18 +87,24 @@ public class AlphaPatternDrawable extends Drawable {
 	}
 
 	/**
-	 * This will generate a bitmap with the pattern
-	 * as big as the rectangle we were allow to draw on.
-	 * We do this to chache the bitmap so we don't need to
-	 * recreate it each time draw() is called since it
-	 * takes a few milliseconds.
+	 * This will generate a bitmap with the pattern as big as the rectangle we were allow to draw
+	 * on. We do this to chache the bitmap so we don't need to recreate it each time draw() is
+	 * called since it takes a few milliseconds.
 	 */
-	private void generatePatternBitmap(){
+	private void generatePatternBitmap() {
 
-		if(getBounds().width() <= 0 || getBounds().height() <= 0){
+		if (getBounds().width() <= 0 || getBounds().height() <= 0) {
 			return;
 		}
-		
+
+		if (mBitmap != null) {
+			/*
+			 * Bitmaps can linger in memory longer than they should and it's a good idea to
+			 * explicitly free them.
+			 */
+			mBitmap.recycle();
+		}
+
 		mBitmap = Bitmap.createBitmap(getBounds().width(), getBounds().height(), Config.ARGB_8888);
 		Canvas canvas = new Canvas(mBitmap);
 
@@ -120,9 +126,6 @@ public class AlphaPatternDrawable extends Drawable {
 			}
 
 			verticalStartWhite = !verticalStartWhite;
-
 		}
-
 	}
-
 }
