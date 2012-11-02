@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2011 Sergey Margaritov
+ * Copyright (C) 2012 Jay Weisskopf
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,42 +17,38 @@
 
 package net.margaritov.preference.colorpicker;
 
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
+import android.graphics.PixelFormat;
 import android.graphics.Bitmap.Config;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.preference.Preference;
+import android.preference.DialogPreference;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 /**
- * A preference type that allows a user to choose a time
+ * A preference type for choosing a color.
  * 
  * @author Sergey Margaritov
+ * @author Jay Weisskopf
  */
-public class ColorPickerPreference
-	extends
-		Preference
-	implements
-		Preference.OnPreferenceClickListener,
-		ColorPickerDialog.OnColorChangedListener {
+public class ColorPickerPreference extends DialogPreference {
 
 	View mView;
-	ColorPickerDialog mDialog;
 	private int mColor = Color.BLACK;
 	private float mDensity = 0;
 	private boolean mAlphaSliderEnabled = false;
-
-	public ColorPickerPreference(Context context) {
-		super(context);
-		init(context, null);
-	}
+	private ColorPickerView mColorPicker;
+	private ColorPickerPanelView mOldColor;
+	private ColorPickerPanelView mNewColor;
 
 	public ColorPickerPreference(Context context, AttributeSet attrs) {
 		super(context, attrs);
@@ -70,15 +67,77 @@ public class ColorPickerPreference
 
 	@Override
 	protected void onSetInitialValue(boolean restoreValue, Object defaultValue) {
-		onColorChanged(restoreValue ? getPersistedInt(mColor) : (Integer) defaultValue);
+		setColor(restoreValue ? getPersistedInt(mColor) : (Integer) defaultValue, false);
 	}
 
 	private void init(Context context, AttributeSet attrs) {
 		mDensity = getContext().getResources().getDisplayMetrics().density;
-		setOnPreferenceClickListener(this);
 		if (attrs != null) {
 			mAlphaSliderEnabled = attrs.getAttributeBooleanValue(null, "alphaSlider", false);
 		}
+
+		setDialogLayoutResource(R.layout.dialog_color_picker);
+	}
+
+	protected View onCreateDialogView() {
+		View dialogView = super.onCreateDialogView();
+
+		mColorPicker = (ColorPickerView) dialogView.findViewById(R.id.color_picker_view);
+		mOldColor = (ColorPickerPanelView) dialogView.findViewById(R.id.old_color_panel);
+		mNewColor = (ColorPickerPanelView) dialogView.findViewById(R.id.new_color_panel);
+
+		((LinearLayout) mOldColor.getParent()).setPadding(
+				Math.round(mColorPicker.getDrawingOffset()), 0,
+				Math.round(mColorPicker.getDrawingOffset()), 0);
+
+		mColorPicker.setAlphaSliderVisible(mAlphaSliderEnabled);
+		mColorPicker.setOnColorChangedListener(mNewColor);
+		mColorPicker.setColor(mColor);
+		mOldColor.setColor(mColor);
+
+		// Simulate "Cancel" when old color panel is clicked.
+		mOldColor.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				Dialog dialog = ColorPickerPreference.this.getDialog();
+				ColorPickerPreference.this.onClick(dialog, DialogInterface.BUTTON_NEGATIVE);
+				dialog.cancel();
+			}
+		});
+
+		// Simulate "OK" when new color panel is clicked.
+		mNewColor.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				Dialog dialog = ColorPickerPreference.this.getDialog();
+				ColorPickerPreference.this.onClick(dialog, DialogInterface.BUTTON_POSITIVE);
+				dialog.dismiss();
+			}
+		});
+
+		return dialogView;
+	}
+
+	protected void showDialog(Bundle state) {
+		super.showDialog(state);
+		// Specify higher quality pixel format to avoid color banding
+		getDialog().getWindow().setFormat(PixelFormat.RGBA_8888);
+	}
+
+	public void onDismiss(DialogInterface dialog) {
+		// Reset pixel format
+		getDialog().getWindow().setFormat(PixelFormat.UNKNOWN);
+		super.onDismiss(dialog);
+	}
+
+	protected void onDialogClosed(boolean positiveResult) {
+		int newColor = mNewColor.getColor();
+		if (positiveResult && callChangeListener(newColor)) {
+			setColor(newColor, true);
+		}
+		super.onDialogClosed(positiveResult);
 	}
 
 	@Override
@@ -116,6 +175,7 @@ public class ColorPickerPreference
 	private Bitmap getPreviewBitmap() {
 		int d = (int) (mDensity * 31); // 30dip
 		int color = mColor;
+		// FIXME: Is this Bitmap ever getting recycled? Potential memory leak.
 		Bitmap bm = Bitmap.createBitmap(d, d, Config.ARGB_8888);
 		int w = bm.getWidth();
 		int h = bm.getHeight();
@@ -133,31 +193,18 @@ public class ColorPickerPreference
 		return bm;
 	}
 
-	@Override
-	public void onColorChanged(int color) {
+	public void setColor(int color, boolean notify) {
+		if (color == mColor) {
+			return;
+		}
 		if (isPersistent()) {
 			persistInt(color);
 		}
 		mColor = color;
 		setPreviewColor();
-		notifyChanged();
-	}
-
-	public boolean onPreferenceClick(Preference preference) {
-		showDialog(null);
-		return false;
-	}
-
-	protected void showDialog(Bundle state) {
-		mDialog = new ColorPickerDialog(getContext(), mColor, getTitle());
-		mDialog.setOnColorChangedListener(this);
-		if (mAlphaSliderEnabled) {
-			mDialog.setAlphaSliderVisible(true);
+		if (notify) {
+			notifyChanged();
 		}
-		if (state != null) {
-			mDialog.onRestoreInstanceState(state);
-		}
-		mDialog.show();
 	}
 
 	/**
@@ -170,7 +217,7 @@ public class ColorPickerPreference
 	}
 
 	/**
-	 * For custom purposes. Not used by ColorPickerPreferrence
+	 * For custom purposes. Not used by ColorPickerPreference
 	 * 
 	 * @param color
 	 * @author Unknown
@@ -201,7 +248,7 @@ public class ColorPickerPreference
 	}
 
 	/**
-	 * For custom purposes. Not used by ColorPickerPreferrence
+	 * For custom purposes. Not used by ColorPickerPreference
 	 * 
 	 * @param argb
 	 * @throws NumberFormatException
@@ -233,12 +280,12 @@ public class ColorPickerPreference
 	@Override
 	protected Parcelable onSaveInstanceState() {
 		final Parcelable superState = super.onSaveInstanceState();
-		if (mDialog == null || !mDialog.isShowing()) {
-			return superState;
-		}
 
 		final SavedState myState = new SavedState(superState);
-		myState.dialogBundle = mDialog.onSaveInstanceState();
+		myState.mOldColor = mColor;
+		myState.mNewColor = mNewColor != null ? mNewColor.getColor() : mColor;
+		myState.mAlphaSliderEnabled = mAlphaSliderEnabled;
+
 		return myState;
 	}
 
@@ -251,22 +298,35 @@ public class ColorPickerPreference
 		}
 
 		SavedState myState = (SavedState) state;
+		mColor = myState.mOldColor;
+		mAlphaSliderEnabled = myState.mAlphaSliderEnabled;
+
+		// Dialog (if one was showing) will be re-created here
 		super.onRestoreInstanceState(myState.getSuperState());
-		showDialog(myState.dialogBundle);
+
+		if (mColorPicker != null) {
+			mColorPicker.setColor(myState.mNewColor);
+		}
 	}
 
 	private static class SavedState extends BaseSavedState {
-		Bundle dialogBundle;
+		int mOldColor;
+		int mNewColor;
+		boolean mAlphaSliderEnabled;
 
 		public SavedState(Parcel source) {
 			super(source);
-			dialogBundle = source.readBundle();
+			mOldColor = source.readInt();
+			mNewColor = source.readInt();
+			mAlphaSliderEnabled = source.readByte() == 1;
 		}
 
 		@Override
 		public void writeToParcel(Parcel dest, int flags) {
 			super.writeToParcel(dest, flags);
-			dest.writeBundle(dialogBundle);
+			dest.writeInt(mOldColor);
+			dest.writeInt(mNewColor);
+			dest.writeByte((byte) (mAlphaSliderEnabled ? 1 : 0));
 		}
 
 		public SavedState(Parcelable superState) {

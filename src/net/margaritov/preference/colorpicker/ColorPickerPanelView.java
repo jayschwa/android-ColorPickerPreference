@@ -30,7 +30,7 @@ import android.view.View;
  * @author Daniel Nilsson
  *
  */
-public class ColorPickerPanelView extends View {
+public class ColorPickerPanelView extends View implements ColorPickerView.OnColorChangedListener {
 
 	/**
 	 * The width in pixels of the border
@@ -167,5 +167,8 @@ public class ColorPickerPanelView extends View {
 	public int getBorderColor(){
 		return mBorderColor;
 	}
-
+	
+	public void onColorChanged(int color) {
+		setColor(color);
+	}
 }
