@@ -109,7 +109,9 @@ public class ColorPickerDialog
 	 */
 	public void onClick(DialogInterface dialog, int which) {
 		if (which == DialogInterface.BUTTON_POSITIVE && mListener != null) {
-			mListener.onColorChanged(mNewColor.getColor());
+			if (mNewColor.getColor() != mOldColor.getColor()) {
+				mListener.onColorChanged(mNewColor.getColor());
+			}
 		}
 		dismiss();
 	}
