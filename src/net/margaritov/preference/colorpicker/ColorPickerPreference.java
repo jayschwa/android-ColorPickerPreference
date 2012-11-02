@@ -135,7 +135,7 @@ public class ColorPickerPreference extends DialogPreference {
 	protected void onDialogClosed(boolean positiveResult) {
 		int newColor = mNewColor.getColor();
 		if (positiveResult && callChangeListener(newColor)) {
-			setColor(newColor, true);
+			setColor(newColor);
 		}
 		super.onDialogClosed(positiveResult);
 	}
@@ -193,17 +193,21 @@ public class ColorPickerPreference extends DialogPreference {
 		return bm;
 	}
 
+	public void setColor(int color) {
+		setColor(color, true);
+	}
+
 	public void setColor(int color, boolean notify) {
-		if (color == mColor) {
-			return;
-		}
-		if (isPersistent()) {
-			persistInt(color);
-		}
+		boolean changed = (color != mColor);
 		mColor = color;
-		setPreviewColor();
-		if (notify) {
-			notifyChanged();
+		if (isPersistent()) {
+			persistInt(mColor);
+		}
+		if (changed) {
+			setPreviewColor();
+			if (notify) {
+				notifyChanged();
+			}
 		}
 	}
 
