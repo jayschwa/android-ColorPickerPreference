@@ -91,7 +91,6 @@ public class ColorPickerPreference
 	private void setPreviewColor() {
 		if (mView == null)
 			return;
-		ImageView iView = new ImageView(getContext());
 		LinearLayout widgetFrameView = ((LinearLayout) mView
 				.findViewById(android.R.id.widget_frame));
 		if (widgetFrameView == null)
@@ -100,14 +99,17 @@ public class ColorPickerPreference
 		widgetFrameView.setPadding(widgetFrameView.getPaddingLeft(),
 				widgetFrameView.getPaddingTop(), (int) (mDensity * 8),
 				widgetFrameView.getPaddingBottom());
-		// remove already create preview image
-		int count = widgetFrameView.getChildCount();
-		if (count > 0) {
-			widgetFrameView.removeViews(0, count);
-		}
-		widgetFrameView.addView(iView);
 		widgetFrameView.setMinimumWidth(0);
-		iView.setBackgroundDrawable(new AlphaPatternDrawable((int) (5 * mDensity)));
+
+		// Get existing ImageView or create a new one
+		ImageView iView;
+		if (widgetFrameView.getChildCount() > 0) {
+			iView = (ImageView) widgetFrameView.getChildAt(0);
+		} else {
+			iView = new ImageView(getContext());
+			widgetFrameView.addView(iView);
+			iView.setBackgroundDrawable(new AlphaPatternDrawable((int) (5 * mDensity)));
+		}
 		iView.setImageBitmap(getPreviewBitmap());
 	}
 
