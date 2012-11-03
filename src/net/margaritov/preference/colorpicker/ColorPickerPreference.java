@@ -21,9 +21,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.TypedArray;
-import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
-import android.graphics.Bitmap.Config;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Parcel;
@@ -31,7 +29,6 @@ import android.os.Parcelable;
 import android.preference.DialogPreference;
 import android.util.AttributeSet;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 /**
@@ -42,13 +39,12 @@ import android.widget.LinearLayout;
  */
 public class ColorPickerPreference extends DialogPreference {
 
-	View mView;
 	private int mColor = Color.BLACK;
-	private float mDensity = 0;
 	private boolean mAlphaSliderEnabled = false;
 	private ColorPickerView mColorPicker;
 	private ColorPickerPanelView mOldColor;
 	private ColorPickerPanelView mNewColor;
+	private ColorPickerPanelView mPreview;
 
 	public ColorPickerPreference(Context context, AttributeSet attrs) {
 		super(context, attrs);
@@ -71,14 +67,25 @@ public class ColorPickerPreference extends DialogPreference {
 	}
 
 	private void init(Context context, AttributeSet attrs) {
-		mDensity = getContext().getResources().getDisplayMetrics().density;
 		if (attrs != null) {
 			mAlphaSliderEnabled = attrs.getAttributeBooleanValue(null, "alphaSlider", false);
 		}
-
 		setDialogLayoutResource(R.layout.dialog_color_picker);
+		setWidgetLayoutResource(R.layout.widget_color_preview);
 	}
 
+	@Override
+	protected void onBindView(View view) {
+		super.onBindView(view);
+		mPreview = (ColorPickerPanelView) view.findViewById(R.id.color_preview_panel);
+		if (mPreview != null) {
+			mPreview.setColor(mColor);
+			// Set mPreview's alpha level
+			setEnabled(isEnabled());
+		}
+	}
+
+	@Override
 	protected View onCreateDialogView() {
 		View dialogView = super.onCreateDialogView();
 
@@ -120,77 +127,27 @@ public class ColorPickerPreference extends DialogPreference {
 		return dialogView;
 	}
 
+	@Override
 	protected void showDialog(Bundle state) {
 		super.showDialog(state);
 		// Specify higher quality pixel format to avoid color banding
 		getDialog().getWindow().setFormat(PixelFormat.RGBA_8888);
 	}
 
+	@Override
 	public void onDismiss(DialogInterface dialog) {
 		// Reset pixel format
 		getDialog().getWindow().setFormat(PixelFormat.UNKNOWN);
 		super.onDismiss(dialog);
 	}
 
+	@Override
 	protected void onDialogClosed(boolean positiveResult) {
 		int newColor = mNewColor.getColor();
 		if (positiveResult && callChangeListener(newColor)) {
 			setColor(newColor);
 		}
 		super.onDialogClosed(positiveResult);
-	}
-
-	@Override
-	protected void onBindView(View view) {
-		super.onBindView(view);
-		mView = view;
-		setPreviewColor();
-	}
-
-	private void setPreviewColor() {
-		if (mView == null)
-			return;
-		LinearLayout widgetFrameView = ((LinearLayout) mView
-				.findViewById(android.R.id.widget_frame));
-		if (widgetFrameView == null)
-			return;
-		widgetFrameView.setVisibility(View.VISIBLE);
-		widgetFrameView.setPadding(widgetFrameView.getPaddingLeft(),
-				widgetFrameView.getPaddingTop(), (int) (mDensity * 8),
-				widgetFrameView.getPaddingBottom());
-		widgetFrameView.setMinimumWidth(0);
-
-		// Get existing ImageView or create a new one
-		ImageView iView;
-		if (widgetFrameView.getChildCount() > 0) {
-			iView = (ImageView) widgetFrameView.getChildAt(0);
-		} else {
-			iView = new ImageView(getContext());
-			widgetFrameView.addView(iView);
-			iView.setBackgroundDrawable(new AlphaPatternDrawable((int) (5 * mDensity)));
-		}
-		iView.setImageBitmap(getPreviewBitmap());
-	}
-
-	private Bitmap getPreviewBitmap() {
-		int d = (int) (mDensity * 31); // 30dip
-		int color = mColor;
-		// FIXME: Is this Bitmap ever getting recycled? Potential memory leak.
-		Bitmap bm = Bitmap.createBitmap(d, d, Config.ARGB_8888);
-		int w = bm.getWidth();
-		int h = bm.getHeight();
-		int c = color;
-		for (int i = 0; i < w; i++) {
-			for (int j = i; j < h; j++) {
-				c = (i <= 1 || j <= 1 || i >= w - 2 || j >= h - 2) ? Color.GRAY : color;
-				bm.setPixel(i, j, c);
-				if (i != j) {
-					bm.setPixel(j, i, c);
-				}
-			}
-		}
-
-		return bm;
 	}
 
 	public void setColor(int color) {
@@ -200,14 +157,14 @@ public class ColorPickerPreference extends DialogPreference {
 	public void setColor(int color, boolean notify) {
 		boolean changed = (color != mColor);
 		mColor = color;
+		if (mPreview != null) {
+			mPreview.setColor(mColor);
+		}
 		if (isPersistent()) {
 			persistInt(mColor);
 		}
-		if (changed) {
-			setPreviewColor();
-			if (notify) {
-				notifyChanged();
-			}
+		if (changed && notify) {
+			notifyChanged();
 		}
 	}
 
@@ -218,6 +175,15 @@ public class ColorPickerPreference extends DialogPreference {
 	 */
 	public void setAlphaSliderEnabled(boolean enable) {
 		mAlphaSliderEnabled = enable;
+	}
+
+	@Override
+	public void setEnabled(boolean enabled) {
+		super.setEnabled(enabled);
+		if (mPreview != null && android.os.Build.VERSION.SDK_INT >= 11) {
+			// @TargetApi(11)
+			mPreview.setAlpha(isEnabled() ? 1 : 0.33f);
+		}
 	}
 
 	/**
@@ -339,10 +305,12 @@ public class ColorPickerPreference extends DialogPreference {
 
 		@SuppressWarnings("unused")
 		public static final Parcelable.Creator<SavedState> CREATOR = new Parcelable.Creator<SavedState>() {
+			@Override
 			public SavedState createFromParcel(Parcel in) {
 				return new SavedState(in);
 			}
 
+			@Override
 			public SavedState[] newArray(int size) {
 				return new SavedState[size];
 			}
