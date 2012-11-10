@@ -45,6 +45,7 @@ public class ColorPickerPreference extends DialogPreference {
 	private ColorPickerPanelView mOldColor;
 	private ColorPickerPanelView mNewColor;
 	private ColorPickerPanelView mPreview;
+	private static float DISABLED_PREVIEW_ALPHA = 0.33f;
 
 	public ColorPickerPreference(Context context, AttributeSet attrs) {
 		super(context, attrs);
@@ -80,8 +81,10 @@ public class ColorPickerPreference extends DialogPreference {
 		mPreview = (ColorPickerPanelView) view.findViewById(R.id.color_preview_panel);
 		if (mPreview != null) {
 			mPreview.setColor(mColor);
-			// Set mPreview's alpha level
-			setEnabled(isEnabled());
+			if (android.os.Build.VERSION.SDK_INT >= 11) {
+				// @TargetApi(11)
+				mPreview.setAlpha(isEnabled() ? 1 : DISABLED_PREVIEW_ALPHA);
+			}
 		}
 	}
 
@@ -93,8 +96,7 @@ public class ColorPickerPreference extends DialogPreference {
 		mOldColor = (ColorPickerPanelView) dialogView.findViewById(R.id.old_color_panel);
 		mNewColor = (ColorPickerPanelView) dialogView.findViewById(R.id.new_color_panel);
 
-		((LinearLayout) mOldColor.getParent()).setPadding(
-				Math.round(mColorPicker.getDrawingOffset()), 0,
+		((LinearLayout) mOldColor.getParent()).setPadding(Math.round(mColorPicker.getDrawingOffset()), 0,
 				Math.round(mColorPicker.getDrawingOffset()), 0);
 
 		mColorPicker.setAlphaSliderVisible(mAlphaSliderEnabled);
@@ -182,7 +184,7 @@ public class ColorPickerPreference extends DialogPreference {
 		super.setEnabled(enabled);
 		if (mPreview != null && android.os.Build.VERSION.SDK_INT >= 11) {
 			// @TargetApi(11)
-			mPreview.setAlpha(isEnabled() ? 1 : 0.33f);
+			mPreview.setAlpha(isEnabled() ? 1 : DISABLED_PREVIEW_ALPHA);
 		}
 	}
 
