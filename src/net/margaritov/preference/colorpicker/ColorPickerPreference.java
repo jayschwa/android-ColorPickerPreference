@@ -96,8 +96,9 @@ public class ColorPickerPreference extends DialogPreference {
 		mOldColor = (ColorPickerPanelView) dialogView.findViewById(R.id.old_color_panel);
 		mNewColor = (ColorPickerPanelView) dialogView.findViewById(R.id.new_color_panel);
 
-		((LinearLayout) mOldColor.getParent()).setPadding(Math.round(mColorPicker.getDrawingOffset()), 0,
-				Math.round(mColorPicker.getDrawingOffset()), 0);
+		// Constrain the panels to the same width as the picker.
+		((LinearLayout) mOldColor.getParent()).setPadding((int) mColorPicker.getDrawingOffset(), 0,
+				(int) mColorPicker.getDrawingOffset(), 0);
 
 		mColorPicker.setAlphaSliderVisible(mAlphaSliderEnabled);
 		mColorPicker.setOnColorChangedListener(mNewColor);
