@@ -17,6 +17,7 @@
 
 package net.margaritov.preference.colorpicker;
 
+import android.annotation.TargetApi;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -76,13 +77,13 @@ public class ColorPickerPreference extends DialogPreference {
 	}
 
 	@Override
+	@TargetApi(11)
 	protected void onBindView(View view) {
 		super.onBindView(view);
 		mPreview = (ColorPickerPanelView) view.findViewById(R.id.color_preview_panel);
 		if (mPreview != null) {
 			mPreview.setColor(mColor);
 			if (android.os.Build.VERSION.SDK_INT >= 11) {
-				// @TargetApi(11)
 				mPreview.setAlpha(isEnabled() ? 1 : DISABLED_PREVIEW_ALPHA);
 			}
 		}
@@ -158,7 +159,7 @@ public class ColorPickerPreference extends DialogPreference {
 	}
 
 	public void setColor(int color, boolean notify) {
-		boolean changed = (color != mColor);
+		final boolean changed = (color != mColor);
 		mColor = color;
 		if (mPreview != null) {
 			mPreview.setColor(mColor);
@@ -181,10 +182,10 @@ public class ColorPickerPreference extends DialogPreference {
 	}
 
 	@Override
+	@TargetApi(11)
 	public void setEnabled(boolean enabled) {
 		super.setEnabled(enabled);
 		if (mPreview != null && android.os.Build.VERSION.SDK_INT >= 11) {
-			// @TargetApi(11)
 			mPreview.setAlpha(isEnabled() ? 1 : DISABLED_PREVIEW_ALPHA);
 		}
 	}
